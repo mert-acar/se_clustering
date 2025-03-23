@@ -1,0 +1,23 @@
+# Data
+data:
+  dataset_name: CIFAR10
+  # batch_size: 128
+  sample_per_class: 100
+  
+# Training
+train: 
+  num_epochs: 500
+  learning_rate: 0.006
+  weight_decay: 0.00005
+  scheduler_args:
+    factor: 0.1
+    patience: 4
+
+  criterion_args:
+    w_coeff: 1 
+    w_self_exp: 1
+
+  early_stop: 8
+
+output_path: ../logs/DSESC_CIFAR10_100/
+#output_path: ../logs/AE_CIFAR10/
