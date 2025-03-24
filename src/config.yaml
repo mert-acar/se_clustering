@@ -1,23 +1,28 @@
 # Data
 data:
-  dataset_name: CIFAR10
+  dataset_name: COIL20
   # batch_size: 128
-  sample_per_class: 100
+  sample_per_class: 57
   
 # Training
 train: 
   num_epochs: 500
-  learning_rate: 0.006
-  weight_decay: 0.00005
+  learning_rate: 0.0001
+  weight_decay: 0.0005
   scheduler_args:
     factor: 0.1
     patience: 4
 
   criterion_args:
     w_coeff: 1 
-    w_self_exp: 1
+    w_self_exp: 0.1
 
   early_stop: 8
 
-output_path: ../logs/DSESC_CIFAR10_100/
-#output_path: ../logs/AE_CIFAR10/
+cluster:
+  dims: 12
+  alpha: 8
+  ro: 0.04
+
+output_path: ../logs/DSESC_COIL20_57/
+# output_path: ../logs/AE_COIL20/

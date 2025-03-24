@@ -9,17 +9,17 @@ class AutoEncoder(nn.Module):
     self.encoder = nn.Sequential(
       nn.Conv2d(in_ch, 32, kernel_size=3, stride=2, padding=1, bias=False),
       nn.ReLU(True),
-      nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1, bias=False),
-      nn.ReLU(True),
-      nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1, bias=False),
-      nn.ReLU(True),
+      # nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1, bias=False),
+      # nn.ReLU(True),
+      # nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1, bias=False),
+      # nn.ReLU(True),
     )
 
     self.decoder = nn.Sequential(
-      nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, bias=False, output_padding=1),
-      nn.ReLU(True),
-      nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, bias=False, output_padding=1),
-      nn.ReLU(True),
+      # nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, bias=False, output_padding=1),
+      # nn.ReLU(True),
+      # nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, bias=False, output_padding=1),
+      # nn.ReLU(True),
       nn.ConvTranspose2d(32, in_ch, kernel_size=3, stride=2, padding=1, bias=False, output_padding=1),
       nn.Sigmoid()
     )
@@ -34,20 +34,20 @@ class DSESCNet(nn.Module):
     self.encoder = nn.Sequential(
       nn.Conv2d(in_ch, 32, kernel_size=3, stride=2, padding=1, bias=False),
       nn.ReLU(True),
-      nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1, bias=False),
-      nn.ReLU(True),
-      nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1, bias=False),
-      nn.ReLU(True),
+      # nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1, bias=False),
+      # nn.ReLU(True),
+      # nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1, bias=False),
+      # nn.ReLU(True),
     )
 
     self.sec = nn.Parameter(
       1.0e-4 * torch.ones(n_samples, n_samples, dtype=torch.float32), requires_grad=True
     )
     self.decoder = nn.Sequential(
-      nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, bias=False, output_padding=1),
-      nn.ReLU(True),
-      nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, bias=False, output_padding=1),
-      nn.ReLU(True),
+      # nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, bias=False, output_padding=1),
+      # nn.ReLU(True),
+      # nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, bias=False, output_padding=1),
+      # nn.ReLU(True),
       nn.ConvTranspose2d(32, in_ch, kernel_size=3, stride=2, padding=1, bias=False, output_padding=1),
       nn.ReLU(True)
     )
@@ -67,8 +67,8 @@ if __name__ == "__main__":
   model = DSESCNet(bs, in_ch)
   out, z, zc = model(x)
   assert out.shape == torch.Size([bs, in_ch, h, w]), "Input and output shapes do not match!"
-  assert z.shape == torch.Size([bs, 128 * (h // 8) * (w // 8)]
+  assert z.shape == torch.Size([bs, 32 * (h // 2) * (w // 2)]
                               ), "Latent code shape do not match with expectation!"
-  assert zc.shape == torch.Size([bs, 128 * (h // 8) * (w // 8)]
+  assert zc.shape == torch.Size([bs, 32 * (h // 2) * (w // 2)]
                                ), "Reconstructed latent code shape do not match with expectation!"
   print("Shapes match ✅")
