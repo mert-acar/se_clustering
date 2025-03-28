@@ -1,28 +1,32 @@
 # Data
 data:
-  dataset_name: COIL20
-  # batch_size: 128
-  sample_per_class: 57
+  dataset_name: CIFAR10
+  batch_size: 128 # ignored in cluster training
+  sample_per_class: 150 # ignored in autoencoder training
   
+model:
+  filters: [16, 32, 64, 128]
+
 # Training
 train: 
-  num_epochs: 500
-  learning_rate: 0.0001
+  num_epochs: 200
+  learning_rate: 0.001
   weight_decay: 0.0005
+
   scheduler_args:
     factor: 0.1
     patience: 4
 
   criterion_args:
-    w_coeff: 1 
-    w_self_exp: 0.1
+    w_coeff: 1
+    w_self_exp: 100
 
-  early_stop: 8
+  early_stop: 16
+  pretrained_weights: ../logs/AE_CIFAR10/best_state.pt
 
 cluster:
   dims: 12
-  alpha: 8
-  ro: 0.04
+  alpha: 4
+  ro: 0.2
 
-output_path: ../logs/DSESC_COIL20_57/
-# output_path: ../logs/AE_COIL20/
+output_path: ../logs/AE_CIFAR10/

@@ -4,13 +4,15 @@ from scipy.optimize import linear_sum_assignment
 from sklearn import cluster
 from sklearn.preprocessing import normalize
 from sklearn.metrics import (
-  homogeneity_score, completeness_score, normalized_mutual_info_score, adjusted_rand_score,
-  calinski_harabasz_score
+  homogeneity_score,
+  completeness_score,
+  normalized_mutual_info_score,
+  adjusted_rand_score,
 )
 from typing import Dict
 
 
-def scores(activations: np.ndarray, y_pred: np.ndarray, y_true: np.ndarray) -> Dict[str, float]:
+def scores(y_pred: np.ndarray, y_true: np.ndarray) -> Dict[str, float]:
   assert y_true.shape == y_pred.shape, "Input arrays must have the same shape"
   return {
     "accuracy": clustering_accuracy(y_true, y_pred),
@@ -18,7 +20,6 @@ def scores(activations: np.ndarray, y_pred: np.ndarray, y_true: np.ndarray) -> D
     "completeness": float(completeness_score(y_true, y_pred)),
     "nmi": float(normalized_mutual_info_score(y_true, y_pred)),
     "ari": float(adjusted_rand_score(y_true, y_pred)),
-    "chi": float(calinski_harabasz_score(activations, y_pred)),
   }
 
 
@@ -47,11 +48,10 @@ def clustering_accuracy(y_true: np.ndarray, y_pred: np.ndarray) -> float:
 def block_diagonalize(coeff: np.ndarray, n_clusters: int, n_dims: int, alpha: int = 8) -> np.ndarray:
   coeff = 0.5 * (coeff + coeff.T)
   n = coeff.shape[0]
+  coeff = coeff - np.diag(np.diag(coeff)) + np.eye(n, n)
   rank = min(n_dims * n_clusters + 1, n - 1)
   u, s, _ = svds(coeff, rank, v0=np.ones(n))
-  if u is None:
-    return coeff
-  u = u[:, ::-1]
+  u = u[:, ::-1]  # type: ignore
   s = np.sqrt(s[::-1])
   s = np.diag(s)
   u = u.dot(s)
@@ -64,26 +64,26 @@ def block_diagonalize(coeff: np.ndarray, n_clusters: int, n_dims: int, alpha: in
   return l
 
 
-def thrC(C: np.ndarray, ro: float) -> np.ndarray:
+def thrC(c: np.ndarray, ro: float) -> np.ndarray:
   if ro < 1:
-    N = C.shape[1]
-    Cp = np.zeros((N, N))
-    S = np.abs(np.sort(-np.abs(C), axis=0))
-    Ind = np.argsort(-np.abs(C), axis=0)
-    for i in range(N):
-      cL1 = np.sum(S[:, i]).astype(float)
+    n = c.shape[1]
+    cp = np.zeros((c, c))
+    s = np.abs(np.sort(-np.abs(c), axis=0))
+    ind = np.argsort(-np.abs(c), axis=0)
+    for i in range(n):
+      cL1 = np.sum(s[:, i]).astype(float)
       stop = False
       csum = 0
       t = 0
       while (stop == False):
-        csum = csum + S[t, i]
+        csum = csum + s[t, i]
         if csum > ro * cL1:
           stop = True
-          Cp[Ind[0:t + 1, i], i] = C[Ind[0:t + 1, i], i]
+          cp[ind[0:t + 1, i], i] = c[ind[0:t + 1, i], i]
         t = t + 1
   else:
-    Cp = C
-  return Cp
+    cp = c
+  return cp
 
 
 def spectral_clustering(
@@ -91,6 +91,7 @@ def spectral_clustering(
 ) -> np.ndarray:
   coeff = thrC(coeff, ro)
   block_coeff = block_diagonalize(coeff, num_classes, dims, alpha)
-  return cluster.SpectralClustering(
+  spectral = cluster.SpectralClustering(
     n_clusters=num_classes, eigen_solver="arpack", affinity="precomputed", assign_labels="discretize"
-  ).fit_predict(block_coeff)
+  )
+  return spectral.fit_predict(block_coeff)

@@ -27,8 +27,9 @@ DATASET_INFO = {
 class COIL20(Dataset):
   def __init__(self, data_root: str, split: Optional[str] = None, transform: Optional[Callable] = None):
     self.transform = transform
+
     if split is None:
-      split = "coil-20-proc"
+      split = "all"
 
     self.filelist = [
       os.path.join(data_root, split, f)
@@ -83,17 +84,6 @@ def get_transforms(dataset_name: str, split: str = "test") -> torch.nn.Module:
     augmentation_list.append(transforms.RandomHorizontalFlip())
     augmentation_list.append(transforms.RandomGrayscale(p=0.2))
 
-  # elif dataset == "coil20":
-  #   augmentation_list.append(transforms.RandomHorizontalFlip())
-  #   augmentation_list.append(
-  #     transforms.RandomChoice([
-  #       transforms.RandomAffine((-90, 90)),
-  #       transforms.RandomAffine(0, translate=(0.2, 0.4)),  #type: ignore[reportArgumentType]
-  #       transforms.RandomAffine(0, scale=(0.8, 1.1)),  #type: ignore[reportArgumentType]
-  #       transforms.RandomAffine(0, shear=(-20, 20))  #type: ignore[reportArgumentType]
-  #     ])
-  #   )
-
   if "vector" in dataset:
     augmentation_list.append(transforms.Lambda(flatten_tensor))
 
@@ -136,10 +126,13 @@ def get_labels(dataset_name: str, split: str = "test") -> np.ndarray:
 
   elif "cifar" in dataset_name.lower():
     dataset_name = "cifar"
+    
+  elif "coil20" in dataset_name.lower():
+    dataset_name = "coil20"
 
   assert dataset_name.lower() in [
-    "mnist", "cifar10"
-  ], f"dataset_name name must be one of ['mnist', 'cifar10'], got {dataset_name}"
+    "mnist", "cifar10", "coil20"
+  ], f"dataset_name name must be one of ['coil20', 'mnist', 'cifar10'], got {dataset_name}"
   assert split in ["train", "test"], f"split must be one of ['train', 'test'], got {split}"
 
   return np.load(f"../data/{dataset_name.lower()}/{split}_labels.npy")

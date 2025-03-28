@@ -1,10 +1,11 @@
 import os
 import torch
 import numpy as np
+from math import isqrt
 from shutil import rmtree
 from random import shuffle
 
-from typing import Union
+from typing import Union, Tuple
 
 
 def create_dir(output_path: str):
@@ -42,3 +43,11 @@ def select_random_samples(
     selected_indices.extend(selected)
   shuffle(selected_indices)
   return np.array(selected_indices)
+
+
+def closest_factors(n: int) -> Tuple[int, int]:
+  root = int(isqrt(n))
+  for i in range(root, 0, -1):
+    if n % i == 0:
+      return (i, n // i)
+  return (n, 1)
