@@ -113,7 +113,6 @@ def get_dataloader(
   batch_size: int = 1,
   num_workers: int = 0,
   sample_per_class: Optional[int] = None,
-  **kwargs
 ) -> DataLoader:
   isTrain = split == "train"
   dataset_cls = get_dataset(dataset_name, split, sample_per_class)
@@ -126,7 +125,7 @@ def get_labels(dataset_name: str, split: str = "test") -> np.ndarray:
 
   elif "cifar" in dataset_name.lower():
     dataset_name = "cifar"
-    
+
   elif "coil20" in dataset_name.lower():
     dataset_name = "coil20"
 

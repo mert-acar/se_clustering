@@ -8,6 +8,7 @@ from sklearn.metrics import (
   completeness_score,
   normalized_mutual_info_score,
   adjusted_rand_score,
+  silhouette_score
 )
 from typing import Dict
 
@@ -64,26 +65,27 @@ def block_diagonalize(coeff: np.ndarray, n_clusters: int, n_dims: int, alpha: in
   return l
 
 
-def thrC(c: np.ndarray, ro: float) -> np.ndarray:
-  if ro < 1:
-    n = c.shape[1]
-    cp = np.zeros((c, c))
-    s = np.abs(np.sort(-np.abs(c), axis=0))
-    ind = np.argsort(-np.abs(c), axis=0)
-    for i in range(n):
-      cL1 = np.sum(s[:, i]).astype(float)
+def thrC(C, alpha):
+  if alpha < 1:
+    N = C.shape[1]
+    Cp = np.zeros((N, N))
+    S = np.abs(np.sort(-np.abs(C), axis=0))
+    Ind = np.argsort(-np.abs(C), axis=0)
+    for i in range(N):
+      cL1 = np.sum(S[:, i]).astype(float)
       stop = False
       csum = 0
       t = 0
       while (stop == False):
-        csum = csum + s[t, i]
-        if csum > ro * cL1:
+        csum = csum + S[t, i]
+        if csum > alpha * cL1:
           stop = True
-          cp[ind[0:t + 1, i], i] = c[ind[0:t + 1, i], i]
+          Cp[Ind[0:t + 1, i], i] = C[Ind[0:t + 1, i], i]
         t = t + 1
   else:
-    cp = c
-  return cp
+    Cp = C
+
+  return Cp
 
 
 def spectral_clustering(

@@ -3,17 +3,17 @@ import torch
 from tqdm import tqdm
 from time import time
 from pprint import pprint
-from scipy.io import loadmat
 from typing import Dict, Any
 from yaml import full_load, dump
-from collections import defaultdict
 
+from visualize import plot_scores
+from collections import defaultdict
 from model import DSESCNet, AutoEncoder
 from utils import get_device, create_dir
-from cluster import spectral_clustering, scores
-from dataset import get_dataloader, DATASET_INFO, COIL20
+from dataset import get_dataloader, DATASET_INFO
 from loss import SelfExpressiveLoss, ReconstructionLoss
-from visualize import plot_scores
+from cluster import spectral_clustering, scores, silhouette_score
+from scipy.sparse.linalg._eigen.arpack.arpack import ArpackError
 
 
 def train_ae(config: Dict[str, Any], verbose: bool = True):
@@ -53,7 +53,7 @@ def train_ae(config: Dict[str, Any], verbose: bool = True):
   for epoch in range(config["train"]["num_epochs"]):
     if verbose:
       print("-" * 20)
-      print(f"Epoch {epoch + 1} / {config["train"]['num_epochs']}")
+      print(f"Epoch {epoch + 1} / {config['train']['num_epochs']}")
     for phase in phases:
       if phase == "train":
         model.train()
@@ -108,9 +108,9 @@ def train_ae(config: Dict[str, Any], verbose: bool = True):
     dump(config, f)
 
 
-def train_model(config: Dict[str, Any], verbose: bool = True):
+def train_cluster(config: Dict[str, Any], verbose: bool = True):
   if "output_path" not in config or config["output_path"] is None:
-    config["output_path"] = f"../logs/DSESC_{config['data']['dataset_name'].upper()}/"
+    config["output_path"] = f"../logs/DSC_{config['data']['dataset_name'].upper()}/"
   create_dir(config["output_path"])
   ckpt_path = os.path.join(config["output_path"], f"best_state.pt")
   with open(os.path.join(config["output_path"], "ExperimentSummary.yaml"), "w") as f:
@@ -123,16 +123,18 @@ def train_model(config: Dict[str, Any], verbose: bool = True):
 
   config["data"]["batch_size"] = config["data"]["sample_per_class"] * dataset_info["num_classes"]
   x, y = next(iter(get_dataloader(split="train", **config["data"])))
-  x, y = x.to(device), y.numpy() - 1
+  x = x.to(device)
+  if min(y) > 0:
+    y = y - min(y)
+  y = y.numpy()
 
-  model = DSESCNet(
-    n_samples=len(y),
-    filters=config["model"]["filters"],
-    in_ch=dataset_info["in_ch"]
-  ).to(device)
+  model = DSESCNet(n_samples=len(y), filters=config["model"]["filters"], in_ch=dataset_info["in_ch"]).to(device)
 
   state_dict = torch.load(config['train']['pretrained_weights'], map_location=device)
   model.ae.load_state_dict(state_dict)
+
+  for p in model.ae.parameters():
+    p.requires_grad = False
 
   optimizer = torch.optim.Adam(
     model.parameters(), lr=config["train"]["learning_rate"], weight_decay=config["train"]["weight_decay"]
@@ -148,16 +150,13 @@ def train_model(config: Dict[str, Any], verbose: bool = True):
   model.train()
   score_dict = defaultdict(list)
   for epoch in range(config["train"]["num_epochs"]):
-    if verbose:
-      print("-" * 20)
-      print(f"Epoch {epoch + 1} / {config["train"]['num_epochs']}")
+    optimizer.zero_grad()
     x_recon, z, z_recon = model(x)
     loss = criterion(x, x_recon, z, z_recon, model.sec.c)
-    optimizer.zero_grad()
     loss.backward()
     optimizer.step()
     scheduler.step(loss)
-    if True: # epoch % 5 == 0 or epoch == config["train"]["num_epochs"] - 1:
+    if epoch % 5 == 0 or epoch == config["train"]["num_epochs"] - 1:
       coeff = model.sec.c.detach().cpu().numpy()
       try:
         y_pred = spectral_clustering(
@@ -168,24 +167,35 @@ def train_model(config: Dict[str, Any], verbose: bool = True):
           ro=config["cluster"]["ro"]
         )
         cluster_scores = scores(y_pred, y)
+        cluster_scores["silhouette_score"] = float(silhouette_score(z.detach().cpu().numpy(), y))
+        for key in criterion.loss_dict:
+          cluster_scores[key] = criterion.loss_dict[key]
+        cluster_scores["loss"] = loss.item()
+
         for key in cluster_scores:
           score_dict[key].append(cluster_scores[key])
-        score_dict["loss"].append(loss.item())
+
+        if verbose:
+          print("-" * 20)
+          print(f"Epoch {epoch + 1} / {config["train"]['num_epochs']}")
+          pprint(cluster_scores)
+
         if cluster_scores["accuracy"] > best_acc:
           best_acc = cluster_scores["accuracy"]
           if verbose:
             print(f"+ Saving the model to {ckpt_path}...")
           torch.save(model.state_dict(), ckpt_path)
 
-        if verbose:
-          pprint(cluster_scores)
-      except ValueError:
+      except ArpackError:
         pass
 
     if loss < best_loss:
       best_loss = loss
       best_epoch = epoch
 
+    if epoch == 50:
+      for p in model.ae.parameters():
+        p.requires_grad = True
     if epoch - best_epoch >= config["train"]["early_stop"]:
       if verbose:
         print(f"No improvements in {config['train']['early_stop']} epochs, stop!")
@@ -213,7 +223,7 @@ def main(train_type: str = "cluster", config_path: str = "./config.yaml",  verbo
   with open(config_path, "r") as f:
     config = full_load(f)
   if train_type == "cluster":
-    train_model(config, verbose)
+    train_cluster(config, verbose)
   elif train_type == "ae":
     train_ae(config, verbose)
   else:

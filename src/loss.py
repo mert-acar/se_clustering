@@ -13,6 +13,7 @@ class SelfExpressiveLoss(nn.Module):
     super().__init__()
     self.w_coeff = w_coeff
     self.w_self_exp = w_self_exp
+    self.loss_dict = {"ae_loss": 0.0, "c_loss": 0.0, "se_loss": 0.0}
     self.frobenius = nn.MSELoss(reduction="sum")
 
   def forward(
@@ -21,4 +22,10 @@ class SelfExpressiveLoss(nn.Module):
     auto_encoder_loss = self.frobenius(x_recon, x)
     coeff_loss = torch.sum(torch.pow(coeff, 2)) * self.w_coeff
     self_exp_loss = self.frobenius(z_recon, z) * self.w_self_exp
-    return auto_encoder_loss + coeff_loss + self_exp_loss 
+    self._register_loss(auto_encoder_loss, coeff_loss, self_exp_loss)
+    return auto_encoder_loss + coeff_loss + self_exp_loss
+
+  def _register_loss(self, ae_loss: torch.Tensor, c_loss: torch.Tensor, se_loss: torch.Tensor):
+    self.loss_dict["ae_loss"] = ae_loss.item()
+    self.loss_dict["c_loss"] = c_loss.item()
+    self.loss_dict["se_loss"] = se_loss.item()

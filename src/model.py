@@ -3,6 +3,42 @@ import torch.nn as nn
 from typing import Tuple, List
 
 
+class ResidualBlock(nn.Module):
+  def __init__(self, in_ch) -> None:
+    super().__init__()
+    self.conv = nn.Sequential(
+      nn.Conv2d(in_ch, in_ch, 3, padding=1),
+      nn.ReLU(),
+      nn.Conv2d(in_ch, in_ch, 3, padding=1)
+    )
+
+  def forward(self, x: torch.Tensor) -> torch.Tensor:
+    return x + self.conv(x)
+
+class ResNetAE(nn.Module):
+  def __init__(self, filters: List[int], in_ch: int = 3) -> None:
+    super().__init__()
+    channels = [in_ch] + filters
+    encoder_layers = []
+    for in_c, out_ch in zip(channels[:-1], channels[1:]):
+      encoder_layers.append(nn.Conv2d(in_c, out_ch, kernel_size=3, stride=2, padding=1))
+      encoder_layers.append(nn.ReLU(inplace=True))
+      encoder_layers.append(ResidualBlock(out_ch))
+    self.encoder = nn.Sequential(*encoder_layers[:-1])
+
+    channels = channels[::-1]
+    decoder_layers = []
+    for in_c, out_ch in zip(channels[:-1], channels[1:]):
+      decoder_layers.append(nn.ConvTranspose2d(in_c, out_ch, kernel_size=3, stride=2, padding=1, output_padding=1))
+      decoder_layers.append(nn.ReLU(inplace=True))
+      decoder_layers.append(ResidualBlock(out_ch))
+    decoder_layers = decoder_layers[:-1] + [nn.Conv2d(in_ch, in_ch, kernel_size=3, stride=1, padding=1), nn.ReLU(True)]
+    self.decoder = nn.Sequential(*decoder_layers)
+
+  def forward(self, x: torch.Tensor) -> torch.Tensor:
+    return self.decoder(self.encoder(x))
+
+
 class AutoEncoder(nn.Module):
   def __init__(self, filters: List[int], in_ch: int = 3) -> None:
     super().__init__()
@@ -39,7 +75,7 @@ class SelfExpression(nn.Module):
 class DSESCNet(nn.Module):
   def __init__(self, n_samples: int, filters: List[int], in_ch: int = 3) -> None:
     super().__init__()
-    self.ae = AutoEncoder(filters, in_ch)
+    self.ae = ResNetAE(filters, in_ch)
     self.sec = SelfExpression(n_samples)
 
   def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
@@ -57,7 +93,6 @@ if __name__ == "__main__":
   filters = [16, 32, 64]
   x = torch.randn(bs, in_ch, h, w)
   model = DSESCNet(bs, filters, in_ch)
-  print(model)
   out, z, zc = model(x)
   assert out.shape == torch.Size([bs, in_ch, h, w]), "Input and output shapes do not match!"
   assert z.shape == torch.Size([bs, filters[-1] * (h // (2**len(filters))) * (w // (2**len(filters)))]

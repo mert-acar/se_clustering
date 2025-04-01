@@ -26,7 +26,7 @@ def plot_scores(scores: Dict[str, List[float]], out_path: Optional[str] = None):
     ax.annotate(
       f'Best: {max_score:.2f}',
       xy=(max_step, max_score),
-      xytext=(max_step, max_score - (max_score * 0.05)),  # Slightly below
+      xytext=(max_step, max_score - (max_score * 0.05)),
       arrowprops=dict(arrowstyle="->", color='red'),
       fontsize=10,
       color='red'

@@ -2,7 +2,7 @@
 data:
   dataset_name: CIFAR10
   batch_size: 128 # ignored in cluster training
-  sample_per_class: 150 # ignored in autoencoder training
+  sample_per_class: 53 # ignored in autoencoder training
   
 model:
   filters: [16, 32, 64, 128]
@@ -10,23 +10,21 @@ model:
 # Training
 train: 
   num_epochs: 200
-  learning_rate: 0.001
-  weight_decay: 0.0005
+  learning_rate: 0.00005
+  weight_decay: 0
 
   scheduler_args:
     factor: 0.1
     patience: 4
 
   criterion_args:
-    w_coeff: 1
-    w_self_exp: 100
+    w_coeff: 1000
+    w_self_exp: 0.1
 
-  early_stop: 16
+  early_stop: 100
   pretrained_weights: ../logs/AE_CIFAR10/best_state.pt
 
 cluster:
   dims: 12
-  alpha: 4
-  ro: 0.2
-
-output_path: ../logs/AE_CIFAR10/
+  alpha: 12
+  ro: 0.04
