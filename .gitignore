@@ -3,3 +3,4 @@ src/__pycache__/
 logs/
 */.DS_Store
 .hydrate
+.python_version

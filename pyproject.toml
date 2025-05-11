@@ -1,0 +1,16 @@
+[project]
+name = "se-clustering"
+version = "0.1.0"
+description = "Self-Expressive Subspace Clustering for Classification Networks"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "matplotlib>=3.10.3",
+    "numpy>=2.2.5",
+    "pyyaml>=6.0.2",
+    "scikit-learn>=1.6.1",
+    "scipy>=1.15.3",
+    "torch>=2.7.0",
+    "torchvision>=0.22.0",
+    "tqdm>=4.67.1",
+]
